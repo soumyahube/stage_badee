@@ -1,0 +1,15 @@
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Brouillons générés en live (garder outputs/examples/ committé)
+outputs/drafts/*.md
+
+# OS / IDE
+.DS_Store
+.vscode/
