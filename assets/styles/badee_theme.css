@@ -1,152 +1,241 @@
 /* ============================================================
-   PALETTE BADEE
+   PALETTE BADEE — usage stratégique, pas décoratif
+   - Vert foncé : titres, identité de marque
+   - Vert clair  : boutons, actions
+   - Jaune       : alertes / validation uniquement
+   - Violet      : accent interactif (focus, sélection, badges)
    ============================================================ */
 :root {
     --badee-jaune: #FFE144;
     --badee-vert-clair: #209138;
     --badee-violet: #67569D;
     --badee-vert-fonce: #125D21;
+
+    --gris-texte: #3A3A3A;
+    --gris-sourdine: #767676;
+    --gris-bordure: #E7E7E7;
+    --gris-fond-subtil: #FAFAFA;
+
+    --ombre-carte: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.04);
+    --rayon: 10px;
 }
 
 /* ============================================================
-   BANDEAU HEADER (logo + titre)
+   MASQUER L'INTERFACE TECHNIQUE STREAMLIT
+   — menu ⋮ (Rerun/Settings/About), barre d'outils, badge
+   "Made with Streamlit" : éléments ajoutés par Streamlit lui-même,
+   pas par le code de l'app. On les cache pour la version testeurs.
+   ============================================================ */
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+[data-testid="stToolbar"] {visibility: hidden;}
+[data-testid="stDecoration"] {display: none;}
+div[class^="viewerBadge"] {display: none !important;}
+
+/* Le bouton de repli/dépli de la sidebar vit dans le même conteneur
+   que le menu ⋮ — on le rend visible explicitement (visibility se
+   réinitialise sur les enfants même si le parent est masqué). */
+[data-testid="collapsedControl"],
+[data-testid*="ollapse"] {
+    visibility: visible !important;
+    opacity: 1 !important;
+    display: flex !important;
+}
+
+/* ============================================================
+   BASE
+   ============================================================ */
+html, body,
+.stApp,
+[data-testid="stAppViewContainer"],
+[data-testid="stMain"],
+.main {
+    background-color: #ffffff !important;
+}
+
+body, .stMarkdown, p, span, div {
+    color: var(--gris-texte);
+}
+
+/* ============================================================
+   HEADER — logo + titre, pas de bloc de couleur plein
    ============================================================ */
 .badee-header {
-    background-color: var(--badee-vert-fonce);
-    border-radius: 10px;
-    padding: 1.1rem 1.6rem;
     display: flex;
     align-items: center;
-    gap: 1.2rem;
-    margin-bottom: 0.5rem;
+    gap: 1rem;
+    padding: 0.5rem 0 1.5rem 0;
+    border-bottom: 1px solid var(--gris-bordure);
+    margin-bottom: 1.75rem;
 }
 
 .badee-header img {
-    border-radius: 6px;
+    border-radius: 8px;
+    flex-shrink: 0;
 }
 
 .badee-header-title {
-    color: #ffffff;
+    color: var(--badee-vert-fonce);
     margin: 0;
     font-weight: 700;
-    font-size: 1.5rem;
-    line-height: 1.2;
+    font-size: 1.4rem;
+    letter-spacing: -0.01em;
+    line-height: 1.25;
 }
 
 .badee-header-subtitle {
-    color: var(--badee-jaune);
-    margin: 0.15rem 0 0 0;
-    font-size: 0.9rem;
-    font-weight: 500;
+    color: var(--gris-sourdine);
+    margin: 0.2rem 0 0 0;
+    font-size: 0.85rem;
+    font-weight: 400;
 }
 
 /* ============================================================
-   BANDEAU DE VALIDATION
+   BANDEAU DE VALIDATION — seul usage du jaune
    ============================================================ */
 .validation-banner {
-    background-color: #f8f9fa;
-    border-left: 4px solid var(--badee-vert-clair);
-    padding: 0.6rem 1.2rem;
-    border-radius: 4px;
-    margin: 1rem 0;
-    color: #333333;
+    background-color: #FFFBEA;
+    border-left: 3px solid var(--badee-jaune);
+    padding: 0.65rem 1rem;
+    border-radius: 6px;
+    margin: 1.1rem 0;
+    color: var(--gris-texte);
+    font-size: 0.88rem;
     font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .validation-banner span {
-    color: var(--badee-vert-fonce);
+    color: #A88A00;
     font-weight: 700;
 }
 
 /* ============================================================
-   MESSAGES DU CHAT
-   Note : Streamlit n'expose pas l'attribut data-role sur
-   stChatMessage. On alterne via nth-of-type — fiable ici car
-   user/assistant se suivent toujours dans cet ordre.
+   MESSAGES DU CHAT — cartes fines, pas de fonds saturés
+   Note : Streamlit n'expose pas data-role sur stChatMessage.
+   nth-of-type est fiable ici : user/assistant alternent toujours
+   dans cet ordre (le code ajoute toujours "user" avant "assistant").
    ============================================================ */
-div[data-testid="stChatMessage"]:nth-of-type(odd) {
-    background-color: var(--badee-jaune) !important;
-    border-radius: 8px !important;
-    padding: 0.8rem 1.2rem !important;
-}
-
-div[data-testid="stChatMessage"]:nth-of-type(odd) p {
-    color: var(--badee-vert-fonce) !important;
-}
-
-div[data-testid="stChatMessage"]:nth-of-type(even) {
+div[data-testid="stChatMessage"] {
     background-color: #ffffff !important;
-    border-left: 4px solid var(--badee-vert-clair) !important;
-    border-radius: 4px !important;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-    padding: 0.8rem 1.2rem !important;
+    border-radius: var(--rayon) !important;
+    box-shadow: var(--ombre-carte) !important;
+    padding: 0.9rem 1.1rem !important;
+    margin-bottom: 0.6rem !important;
+    border: 1px solid var(--gris-bordure) !important;
+}
+
+/* Utilisateur : fine bordure violette (accent interactif) */
+div[data-testid="stChatMessage"]:nth-of-type(odd) {
+    border-left: 3px solid var(--badee-violet) !important;
+}
+
+/* Assistant : fine bordure vert clair (identité BADEE) */
+div[data-testid="stChatMessage"]:nth-of-type(even) {
+    border-left: 3px solid var(--badee-vert-clair) !important;
 }
 
 /* ============================================================
-   SIDEBAR
+   SIDEBAR — sobre, pas de bloc de couleur
    ============================================================ */
 [data-testid="stSidebar"] {
-    background-color: #F7F6FB;
+    background-color: var(--gris-fond-subtil);
+    border-right: 1px solid var(--gris-bordure);
 }
 
-[data-testid="stSidebar"] .stButton button {
-    background-color: var(--badee-violet) !important;
-    color: white !important;
-    border: none !important;
-    border-radius: 4px !important;
-    font-weight: 500 !important;
-    transition: background-color 0.2s ease;
-}
-
-[data-testid="stSidebar"] .stButton button:hover {
-    background-color: var(--badee-vert-fonce) !important;
+[data-testid="stSidebar"] h3 {
+    color: var(--badee-vert-fonce);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-top: 1.4rem;
+    margin-bottom: 0.6rem;
 }
 
 /* ============================================================
-   BOUTONS (zone principale)
+   BADGE — seul usage décoratif du violet (statut, version)
+   ============================================================ */
+.badee-badge {
+    display: inline-block;
+    background-color: #F1EEF9;
+    color: var(--badee-violet);
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    letter-spacing: 0.02em;
+}
+
+/* ============================================================
+   BOUTONS — vert clair, action
    ============================================================ */
 .stButton button {
     background-color: var(--badee-vert-clair) !important;
     color: white !important;
     border: none !important;
-    border-radius: 4px !important;
+    border-radius: 7px !important;
     font-weight: 500 !important;
-    transition: background-color 0.2s ease;
+    padding: 0.5rem 1rem !important;
+    transition: background-color 0.15s ease;
 }
 
 .stButton button:hover {
     background-color: var(--badee-vert-fonce) !important;
 }
 
-/* ============================================================
-   CHAMPS DE SAISIE
-   ============================================================ */
-.stTextInput input, .stTextArea textarea {
-    border: 1.5px solid var(--badee-violet) !important;
-    border-radius: 4px !important;
+.stButton button:focus-visible {
+    outline: 2px solid var(--badee-violet) !important;
+    outline-offset: 2px !important;
 }
 
-.stTextInput input:focus, .stTextArea textarea:focus {
-    border-color: var(--badee-vert-clair) !important;
-    box-shadow: 0 0 0 2px rgba(32, 145, 56, 0.15) !important;
+/* ============================================================
+   CHAMPS DE SAISIE — neutres au repos, violet au focus
+   ============================================================ */
+.stSelectbox div[data-baseweb="select"] > div,
+.stTextInput input,
+.stTextArea textarea {
+    border: 1px solid var(--gris-bordure) !important;
+    border-radius: 7px !important;
+}
+
+.stSelectbox div[data-baseweb="select"]:focus-within > div,
+.stTextInput input:focus,
+.stTextArea textarea:focus {
+    border-color: var(--badee-violet) !important;
+    box-shadow: 0 0 0 3px rgba(103, 86, 157, 0.12) !important;
 }
 
 /* ============================================================
    ZONE DE SAISIE DU CHAT
    ============================================================ */
 [data-testid="stChatInput"] {
-    border: 1.5px solid var(--badee-violet) !important;
-    border-radius: 8px !important;
+    border: 1px solid var(--gris-bordure) !important;
+    border-radius: var(--rayon) !important;
+    box-shadow: var(--ombre-carte);
+}
+
+[data-testid="stChatInput"]:focus-within {
+    border-color: var(--badee-violet) !important;
+    box-shadow: 0 0 0 3px rgba(103, 86, 157, 0.12) !important;
 }
 
 /* ============================================================
-   COLOR PICKER (affichage palette)
+   DIVIDERS — discrets
    ============================================================ */
-div[data-testid="stColorPicker"] {
-    width: 100%;
+hr {
+    border-color: var(--gris-bordure) !important;
+    margin: 1.2rem 0 !important;
 }
 
-div[data-testid="stColorPicker"] > div {
-    border-radius: 4px;
-    border: 1px solid #e0e0e0;
+/* ============================================================
+   PIED DE PAGE
+   ============================================================ */
+.badee-footer {
+    text-align: center;
+    color: var(--gris-sourdine);
+    font-size: 0.78rem;
+    padding-top: 0.5rem;
 }

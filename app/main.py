@@ -8,7 +8,9 @@ Lancer avec : streamlit run app/main.py
 import streamlit as st
 import sys
 import os
+import json
 import base64
+from datetime import datetime
 from PIL import Image
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -23,6 +25,46 @@ from app.conversation import generer_reponse
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOGO_PATH = os.path.join(BASE_DIR, "assets", "images", "logo_badee.png")
 CSS_PATH = os.path.join(BASE_DIR, "assets", "styles", "badee_theme.css")
+HISTORIQUE_PATH = os.path.join(BASE_DIR, "data", "conversation_history.json")
+
+
+def charger_historique():
+    """Recharge la conversation sauvegardée (survit au rechargement de page)."""
+    if os.path.exists(HISTORIQUE_PATH):
+        try:
+            with open(HISTORIQUE_PATH, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, OSError):
+            return []
+    return []
+
+
+def sauvegarder_historique(messages):
+    """Sauvegarde la conversation sur disque après chaque échange."""
+    os.makedirs(os.path.dirname(HISTORIQUE_PATH), exist_ok=True)
+    with open(HISTORIQUE_PATH, "w", encoding="utf-8") as f:
+        json.dump(messages, f, ensure_ascii=False, indent=2)
+
+
+def effacer_historique():
+    if os.path.exists(HISTORIQUE_PATH):
+        os.remove(HISTORIQUE_PATH)
+
+
+def formater_conversation_txt(messages):
+    """Formate la conversation en texte lisible pour le téléchargement."""
+    lignes = [
+        "BADEE — Assistant de rédaction LinkedIn",
+        f"Conversation exportée le {datetime.now().strftime('%d/%m/%Y à %H:%M')}",
+        "=" * 50,
+        "",
+    ]
+    for message in messages:
+        auteur = "Vous" if message["role"] == "user" else "Assistant"
+        lignes.append(f"[{auteur}]")
+        lignes.append(message["content"])
+        lignes.append("")
+    return "\n".join(lignes)
 
 
 def load_logo():
@@ -55,7 +97,7 @@ load_css()
 
 
 # ============================================================
-# EN-TÊTE AVEC LOGO (bandeau vert foncé assorti au fond du logo)
+# EN-TÊTE — logo + titre, fond blanc, simple séparateur
 # ============================================================
 def logo_base64():
     if not os.path.exists(LOGO_PATH):
@@ -65,10 +107,8 @@ def logo_base64():
 
 _logo_b64 = logo_base64()
 _logo_html = (
-    f'<img src="data:image/png;base64,{_logo_b64}" width="90" alt="Logo BADEE">'
-    if _logo_b64 else
-    '<div style="width:90px;height:35px;display:flex;align-items:center;'
-    'justify-content:center;color:white;font-weight:700;">BADEE</div>'
+    f'<img src="data:image/png;base64,{_logo_b64}" width="72" alt="Logo BADEE">'
+    if _logo_b64 else ""
 )
 
 st.markdown(f"""
@@ -93,57 +133,45 @@ st.markdown("""
 
 
 # ============================================================
-# SIDEBAR — PARAMÈTRES
+# HISTORIQUE DE CONVERSATION — chargé avant la sidebar
+# ============================================================
+if "messages" not in st.session_state:
+    st.session_state.messages = charger_historique()
+
+
+# ============================================================
+# SIDEBAR — paramètres, sobre
 # ============================================================
 with st.sidebar:
-    if logo:
-        st.image(logo, width=100)
+    st.markdown('<span class="badee-badge">V1 — Proof of Concept</span>', unsafe_allow_html=True)
 
     st.markdown("### Paramètres")
-
-    modele_choisi = st.selectbox(
-        "Modèle de langage",
-        options=list(MODELES_A_COMPARER.keys()),
-        index=list(MODELES_A_COMPARER.keys()).index(MODELE_ACTIF),
-    )
-    st.caption(f"Fournisseur : {MODELES_A_COMPARER[modele_choisi]['provider']}")
-
-    st.divider()
+    st.caption(f"Modèle : {MODELE_ACTIF} ({MODELES_A_COMPARER[MODELE_ACTIF]['provider']})")
 
     if st.button("Réinitialiser la conversation", use_container_width=True):
         st.session_state.messages = []
+        effacer_historique()
         st.rerun()
 
-    st.divider()
+    if st.session_state.get("messages"):
+        st.download_button(
+            "Télécharger la conversation",
+            data=formater_conversation_txt(st.session_state.messages),
+            file_name=f"conversation_badee_{datetime.now().strftime('%Y%m%d_%H%M')}.txt",
+            mime="text/plain",
+            use_container_width=True,
+        )
 
-    st.markdown("### Version")
-    st.caption("""
-    **V1 — Proof of Concept**
-
-    - Génération de brouillons
-    - Assistance conversationnelle
-    - Modèles : Gemma, Llama 3.3
-
-    **Limites :**
-    - Pas de connexion aux données réelles
-    - Pas de publication automatique
-    """)
-
-    st.divider()
-
-    st.markdown("### Identité visuelle")
-    st.color_picker("Jaune", "#FFE144", disabled=True)
-    st.color_picker("Vert clair", "#209138", disabled=True)
-    st.color_picker("Violet", "#67569D", disabled=True)
-    st.color_picker("Vert foncé", "#125D21", disabled=True)
+    st.markdown("### Ce que fait cette version")
+    st.caption(
+        "Génération de brouillons et assistance conversationnelle. "
+        "Pas de connexion aux données réelles, pas de publication automatique."
+    )
 
 
 # ============================================================
-# HISTORIQUE DE CONVERSATION
+# AFFICHAGE DES MESSAGES
 # ============================================================
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
@@ -156,15 +184,17 @@ prompt_utilisateur = st.chat_input("Décrivez le post que vous souhaitez rédige
 
 if prompt_utilisateur:
     st.session_state.messages.append({"role": "user", "content": prompt_utilisateur})
+    sauvegarder_historique(st.session_state.messages)
     with st.chat_message("user"):
         st.markdown(prompt_utilisateur)
 
     with st.chat_message("assistant"):
         with st.spinner("Rédaction en cours..."):
             try:
-                reponse = generer_reponse(modele_choisi, st.session_state.messages)
+                reponse = generer_reponse(MODELE_ACTIF, st.session_state.messages)
                 st.markdown(reponse)
                 st.session_state.messages.append({"role": "assistant", "content": reponse})
+                sauvegarder_historique(st.session_state.messages)
 
                 st.markdown("""
                 <div class="validation-banner">
@@ -179,9 +209,9 @@ if prompt_utilisateur:
 # ============================================================
 # PIED DE PAGE
 # ============================================================
-st.divider()
 st.markdown("""
-<div style="text-align: center; color: #67569D; font-size: 0.8rem;">
+<hr>
+<div class="badee-footer">
     BADEE — Assistant de rédaction LinkedIn &bull; V1 Proof of Concept
 </div>
 """, unsafe_allow_html=True)
