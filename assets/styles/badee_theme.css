@@ -22,9 +22,6 @@
 
 /* ============================================================
    MASQUER L'INTERFACE TECHNIQUE STREAMLIT
-   — menu ⋮ (Rerun/Settings/About), barre d'outils, badge
-   "Made with Streamlit" : éléments ajoutés par Streamlit lui-même,
-   pas par le code de l'app. On les cache pour la version testeurs.
    ============================================================ */
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
@@ -32,9 +29,6 @@ footer {visibility: hidden;}
 [data-testid="stDecoration"] {display: none;}
 div[class^="viewerBadge"] {display: none !important;}
 
-/* Le bouton de repli/dépli de la sidebar vit dans le même conteneur
-   que le menu ⋮ — on le rend visible explicitement (visibility se
-   réinitialise sur les enfants même si le parent est masqué). */
 [data-testid="collapsedControl"],
 [data-testid*="ollapse"] {
     visibility: visible !important;
@@ -43,14 +37,47 @@ div[class^="viewerBadge"] {display: none !important;}
 }
 
 /* ============================================================
-   BASE
+   ARRIÈRE-PLAN — fond clair chaleureux, avec un chemin en
+   pointillés qui monte (progression) et des rayons ascendants
+   très atténués en dessous (croissance). Motif discret, fixe
+   même quand la page scrolle.
    ============================================================ */
 html, body,
 .stApp,
 [data-testid="stAppViewContainer"],
-[data-testid="stMain"],
-.main {
-    background-color: #ffffff !important;
+[data-testid="stMain"] {
+    background-color: #FBF9F3 !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 700 380'%3E%3Cg opacity='0.16'%3E%3Cpath d='M350 380 L350 100' stroke='%23209138' stroke-width='16' fill='none'/%3E%3Cpath d='M350 380 L250 140' stroke='%23FFE144' stroke-width='12' fill='none'/%3E%3Cpath d='M350 380 L450 140' stroke='%2367569D' stroke-width='12' fill='none'/%3E%3C/g%3E%3Cpath d='M20 360 Q160 300 190 240 T360 150 T560 60 T680 20' fill='none' stroke='%23209138' stroke-width='2' stroke-dasharray='1 9' stroke-linecap='round' opacity='0.4'/%3E%3Ccircle cx='190' cy='240' r='4' fill='%23FFE144' opacity='0.65'/%3E%3Ccircle cx='370' cy='150' r='4' fill='%2367569D' opacity='0.6'/%3E%3Ccircle cx='588' cy='66' r='5' fill='%23209138' opacity='0.7'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: center bottom !important;
+    background-size: min(560px, 88vw) auto !important;
+    background-attachment: fixed !important;
+}
+
+[data-testid="stHeader"] {
+    background: transparent !important;
+}
+
+/* La barre de saisie du chat est un conteneur FIXE, séparé du
+   conteneur principal — on la rend transparente pour qu'elle
+   laisse voir le même fond derrière elle, sans quoi elle affiche
+   sa propre couleur et casse l'effet de fenêtre. Le sélecteur
+   générique "*" est nécessaire car Streamlit imbrique plusieurs
+   div avec chacune leur propre fond blanc à cet endroit ; on
+   redonne son fond blanc à la pilule de saisie elle-même juste
+   après (plus bas dans ce fichier, donc prioritaire en cascade). */
+[data-testid="stBottom"],
+[data-testid="stBottom"] *,
+[data-testid="stBottomBlockContainer"] {
+    background: transparent !important;
+    border-top: none !important;
+    box-shadow: none !important;
+}
+
+[data-testid="stBottomBlockContainer"] {
+    max-width: 800px !important;
+    margin: 0 auto !important;
+    padding-bottom: 1.5rem !important;
 }
 
 body, .stMarkdown, p, span, div {
@@ -58,7 +85,22 @@ body, .stMarkdown, p, span, div {
 }
 
 /* ============================================================
-   HEADER — logo + titre, pas de bloc de couleur plein
+   LA FENÊTRE — conteneur principal Streamlit en carte blanche
+   flottante, centrée, ombre teintée de vert (pas de gris neutre)
+   ============================================================ */
+[data-testid="stMainBlockContainer"],
+[data-testid="stAppViewBlockContainer"],
+.main .block-container {
+    background-color: #ffffff !important;
+    max-width: 800px !important;
+    margin: 3rem auto 1rem auto !important;
+    padding: 2.25rem 2.5rem !important;
+    border-radius: 22px !important;
+    box-shadow: 0 18px 40px rgba(18, 93, 33, 0.13) !important;
+}
+
+/* ============================================================
+   HEADER
    ============================================================ */
 .badee-header {
     display: flex;
@@ -91,7 +133,7 @@ body, .stMarkdown, p, span, div {
 }
 
 /* ============================================================
-   BANDEAU DE VALIDATION — seul usage du jaune
+   BANDEAU DE VALIDATION
    ============================================================ */
 .validation-banner {
     background-color: #FFFBEA;
@@ -113,36 +155,39 @@ body, .stMarkdown, p, span, div {
 }
 
 /* ============================================================
-   MESSAGES DU CHAT — cartes fines, pas de fonds saturés
-   Note : Streamlit n'expose pas data-role sur stChatMessage.
-   nth-of-type est fiable ici : user/assistant alternent toujours
-   dans cet ordre (le code ajoute toujours "user" avant "assistant").
+   MESSAGES DU CHAT
    ============================================================ */
 div[data-testid="stChatMessage"] {
-    background-color: #ffffff !important;
+    background-color: var(--gris-fond-subtil) !important;
     border-radius: var(--rayon) !important;
-    box-shadow: var(--ombre-carte) !important;
+    box-shadow: none !important;
     padding: 0.9rem 1.1rem !important;
     margin-bottom: 0.6rem !important;
     border: 1px solid var(--gris-bordure) !important;
 }
 
-/* Utilisateur : fine bordure violette (accent interactif) */
 div[data-testid="stChatMessage"]:nth-of-type(odd) {
     border-left: 3px solid var(--badee-violet) !important;
 }
 
-/* Assistant : fine bordure vert clair (identité BADEE) */
 div[data-testid="stChatMessage"]:nth-of-type(even) {
     border-left: 3px solid var(--badee-vert-clair) !important;
 }
 
 /* ============================================================
-   SIDEBAR — sobre, pas de bloc de couleur
+   SIDEBAR — panneau flottant, même esprit que la fenêtre
    ============================================================ */
 [data-testid="stSidebar"] {
     background-color: var(--gris-fond-subtil);
-    border-right: 1px solid var(--gris-bordure);
+    border-right: none;
+    margin: 1.25rem;
+    border-radius: 18px;
+    box-shadow: 0 16px 40px rgba(18, 93, 33, 0.14);
+    overflow: hidden;
+}
+
+[data-testid="stSidebar"] > div {
+    padding: 0.5rem 0.75rem;
 }
 
 [data-testid="stSidebar"] h3 {
@@ -156,7 +201,7 @@ div[data-testid="stChatMessage"]:nth-of-type(even) {
 }
 
 /* ============================================================
-   BADGE — seul usage décoratif du violet (statut, version)
+   BADGE
    ============================================================ */
 .badee-badge {
     display: inline-block;
@@ -170,7 +215,7 @@ div[data-testid="stChatMessage"]:nth-of-type(even) {
 }
 
 /* ============================================================
-   BOUTONS — vert clair, action
+   BOUTONS
    ============================================================ */
 .stButton button {
     background-color: var(--badee-vert-clair) !important;
@@ -192,7 +237,7 @@ div[data-testid="stChatMessage"]:nth-of-type(even) {
 }
 
 /* ============================================================
-   CHAMPS DE SAISIE — neutres au repos, violet au focus
+   CHAMPS DE SAISIE
    ============================================================ */
 .stSelectbox div[data-baseweb="select"] > div,
 .stTextInput input,
@@ -209,12 +254,13 @@ div[data-testid="stChatMessage"]:nth-of-type(even) {
 }
 
 /* ============================================================
-   ZONE DE SAISIE DU CHAT
+   ZONE DE SAISIE DU CHAT — pilule blanche flottante sur le fond
    ============================================================ */
 [data-testid="stChatInput"] {
     border: 1px solid var(--gris-bordure) !important;
     border-radius: var(--rayon) !important;
-    box-shadow: var(--ombre-carte);
+    box-shadow: 0 10px 24px rgba(18, 93, 33, 0.12) !important;
+    background-color: #ffffff !important;
 }
 
 [data-testid="stChatInput"]:focus-within {
@@ -223,7 +269,7 @@ div[data-testid="stChatMessage"]:nth-of-type(even) {
 }
 
 /* ============================================================
-   DIVIDERS — discrets
+   DIVIDERS
    ============================================================ */
 hr {
     border-color: var(--gris-bordure) !important;
@@ -238,4 +284,22 @@ hr {
     color: var(--gris-sourdine);
     font-size: 0.78rem;
     padding-top: 0.5rem;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 640px) {
+    [data-testid="stMainBlockContainer"],
+    [data-testid="stAppViewBlockContainer"],
+    .main .block-container,
+    [data-testid="stBottomBlockContainer"] {
+        margin: 0.75rem !important;
+        padding: 1.25rem 1.25rem !important;
+        border-radius: 16px !important;
+    }
+
+    [data-testid="stSidebar"] {
+        margin: 0.75rem;
+    }
 }

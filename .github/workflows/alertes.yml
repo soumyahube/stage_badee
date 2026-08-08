@@ -1,0 +1,32 @@
+name: Alertes Publication BADEE
+
+on:
+  schedule:
+    # Tous les lundis à 8h UTC — adapte selon ta préférence
+    # Rappel : le fuseau GitHub Actions est TOUJOURS en UTC (Maroc = UTC+0 ou UTC+1 selon saison)
+    - cron: '0 8 * * 1'
+  workflow_dispatch:  # permet de lancer le workflow manuellement depuis l'onglet Actions, pour tester
+
+jobs:
+  run-alertes:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout du repo
+        uses: actions/checkout@v4
+
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'  # adapte à la version que tu utilises en local
+
+      - name: Installer les dépendances
+        run: |
+          pip install -r requirements.txt
+          # Si requirements.txt n'existe pas encore, remplace par :
+          # pip install pandas smtplib-ssl python-dotenv  (adapte selon tes vraies dépendances)
+
+      - name: Exécuter le script d'alertes
+        env:
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+        run: python scripts/alertes_publications.py

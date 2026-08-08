@@ -1,0 +1,31 @@
+name: Alertes Commentaires BADEE
+
+on:
+  schedule:
+    # Toutes les 24h à 9h UTC — cohérent avec ton seuil de 48h (2 checks avant déclenchement)
+    - cron: '0 9 * * *'
+  workflow_dispatch:  # permet de lancer le workflow manuellement depuis l'onglet Actions, pour tester
+
+jobs:
+  run-alertes-commentaires:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout du repo
+        uses: actions/checkout@v4
+
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'  # adapte à la version que tu utilises en local
+
+      - name: Installer les dépendances
+        run: |
+          pip install -r requirements.txt
+          # Si requirements.txt n'existe pas encore, remplace par :
+          # pip install pandas smtplib-ssl python-dotenv  (adapte selon tes vraies dépendances)
+
+      - name: Exécuter le script d'alertes commentaires
+        env:
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+        run: python scripts/alertes_commentaires.py
