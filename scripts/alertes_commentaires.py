@@ -1,7 +1,9 @@
 """
 Système d'alerte BADEE — Commentaires non répondus (48h)
 Vérifie les commentaires en attente de réponse et alerte en priorisant
-les profils à forte valeur.
+les profils à forte valeur, grâce à un scoring IA (poste + contenu du
+commentaire), avec repli automatique sur un scoring par mots-clés si le
+LLM est indisponible (voir scripts/scoring_commentaires.py).
 
 Premier test avec données simulées (à remplacer par l'API LinkedIn
 + Supabase une fois le module Collecte connecté).
@@ -10,6 +12,7 @@ Lancer : python scripts/alertes_commentaires.py
 """
 
 import os
+import sys
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -17,18 +20,13 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 load_dotenv()
 
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from scripts.scoring_commentaires import scorer_commentaires, SEUIL_PRIORITAIRE
+
 # ============================================================
 # CONFIGURATION
 # ============================================================
 SEUIL_HEURES = 48  # Alerter si commentaire sans réponse depuis plus de 48h
-
-# Mots-clés simples pour repérer un profil à forte valeur
-# (à remplacer plus tard par le vrai scoring IA du module Analyse)
-MOTS_CLES_PROFIL_FORTE_VALEUR = [
-    "director", "directeur", "ceo", "founder", "fondateur",
-    "chercheur", "researcher", "investisseur", "investor",
-    "partner", "partenaire"
-]
 
 # Commentaires simulés (à remplacer par l'API plus tard)
 COMMENTAIRES_SIMULES = [
@@ -72,12 +70,6 @@ EMAIL_CONFIG = {
 # ============================================================
 # FONCTIONS
 # ============================================================
-def est_profil_forte_valeur(poste_auteur):
-    """Détection simple par mots-clés (placeholder du scoring IA futur)."""
-    poste = poste_auteur.lower()
-    return any(mot in poste for mot in MOTS_CLES_PROFIL_FORTE_VALEUR)
-
-
 def heures_ecoulees(date_str):
     date_commentaire = datetime.strptime(date_str, "%Y-%m-%d %H:%M")
     delta = datetime.now() - date_commentaire
@@ -85,30 +77,45 @@ def heures_ecoulees(date_str):
 
 
 def detecter_commentaires_en_attente():
-    """Filtre les commentaires non répondus depuis plus de SEUIL_HEURES."""
-    en_attente = []
+    """Filtre les commentaires non répondus depuis plus de SEUIL_HEURES,
+    puis les envoie au scoring IA (score 0-100 + catégorie) avant de trier
+    par priorité décroissante."""
+    candidats = []
     for c in COMMENTAIRES_SIMULES:
         if c["repondu"]:
             continue
         h = heures_ecoulees(c["date_commentaire"])
         if h >= SEUIL_HEURES:
             c["heures_ecoulees"] = round(h, 1)
-            c["forte_valeur"] = est_profil_forte_valeur(c["poste_auteur"])
-            en_attente.append(c)
-    # Priorité : profils à forte valeur d'abord, puis les plus anciens
-    en_attente.sort(key=lambda c: (not c["forte_valeur"], -c["heures_ecoulees"]))
-    return en_attente
+            candidats.append(c)
+
+    if not candidats:
+        return []
+
+    # Scoring IA en un seul appel batch (fallback mots-clés géré en interne)
+    candidats_scores = scorer_commentaires(candidats)
+
+    # Tri par score décroissant, puis par ancienneté pour départager
+    candidats_scores.sort(key=lambda c: (-c["score"], -c["heures_ecoulees"]))
+    return candidats_scores
 
 
 def construire_corps_email(commentaires):
     lignes = []
     for c in commentaires:
-        priorite = "🔴 PRIORITAIRE" if c["forte_valeur"] else "🟡 Standard"
+        if c["score"] >= SEUIL_PRIORITAIRE:
+            priorite = "🔴 PRIORITAIRE"
+        elif c["sentiment"] == "negatif":
+            priorite = "⚠️ TON NÉGATIF"  # à surveiller même si peu urgent côté business
+        else:
+            priorite = "🟡 Standard"
+        emoji_sentiment = {"positif": "🙂", "neutre": "😐", "negatif": "🙁"}[c["sentiment"]]
         lignes.append(f"""
-{priorite}
+{priorite} — score {c['score']}/100 ({c['categorie']}) — ton {emoji_sentiment} {c['sentiment']}
 Post : {c['post_titre']}
 Auteur : {c['auteur']} — {c['poste_auteur']}
 Commentaire : "{c['commentaire']}"
+Pourquoi ce score : {c['justification']}
 Sans réponse depuis : {c['heures_ecoulees']} h
 Lien : {c['lien']}
 {'-'*50}""")
@@ -126,14 +133,15 @@ def envoyer_alerte_email(commentaires):
         afficher_alerte_console(commentaires)
         return False
 
-    nb_prioritaires = sum(1 for c in commentaires if c["forte_valeur"])
+    nb_prioritaires = sum(1 for c in commentaires if c["score"] >= SEUIL_PRIORITAIRE)
     sujet = f"⚠️ ALERTE - {len(commentaires)} commentaire(s) sans réponse ({nb_prioritaires} prioritaire(s))"
 
     corps = f"""
 Bonjour l'équipe,
 
 Ce message est une alerte automatique concernant des commentaires LinkedIn
-sans réponse depuis plus de {SEUIL_HEURES}h.
+sans réponse depuis plus de {SEUIL_HEURES}h. Les commentaires sont triés par
+priorité (score IA basé sur le poste de l'auteur et le contenu du commentaire).
 
 {construire_corps_email(commentaires)}
 

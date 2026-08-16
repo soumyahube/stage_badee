@@ -1,12 +1,23 @@
 """
 Calendrier éditorial BADEE — génère une suggestion de sujet de post
 en fonction des événements à venir (fêtes nationales, jours internationaux,
-fêtes religieuses) plutôt que d'un simple mapping mois → sujet.
+fêtes religieuses, ET événements personnalisés ajoutés par l'équipe) plutôt
+que d'un simple mapping mois → sujet.
 
 À importer dans alertes.py à la place de generer_suggestion_sujet().
 """
 
 from datetime import datetime, timedelta
+import sys
+import os
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+try:
+    from data.evenements_personnalises import lister_evenements
+except ImportError:
+    def lister_evenements():
+        return []
 
 FENETRE_JOURS_PAR_DEFAUT = 10  # regarde X jours en avant pour trouver un événement pertinent
 
@@ -67,9 +78,25 @@ def _jour_international_cooperatives(annee):
     return d
 
 
+def _evenements_personnalises_dans_fenetre(date_reference, limite):
+    """Récupère les événements ajoutés par l'équipe (via Streamlit ou Supabase)
+    tombant dans la fenêtre de recherche."""
+    candidats = []
+    for evt in lister_evenements():
+        try:
+            d = datetime.fromisoformat(evt["date_evenement"])
+        except (KeyError, ValueError):
+            continue
+        if date_reference <= d <= limite:
+            message = evt.get("message_suggere") or f"Post — {evt['nom']}"
+            candidats.append((d, evt["nom"], message))
+    return candidats
+
+
 def _prochains_evenements(date_reference, fenetre_jours):
-    """Retourne tous les événements (fixes + mobiles + jour coopératives)
-    tombant entre date_reference et date_reference + fenetre_jours."""
+    """Retourne tous les événements (fixes + mobiles + jour coopératives +
+    personnalisés ajoutés par l'équipe) tombant entre date_reference et
+    date_reference + fenetre_jours."""
     limite = date_reference + timedelta(days=fenetre_jours)
     annee = date_reference.year
     candidats = []
@@ -96,6 +123,9 @@ def _prochains_evenements(date_reference, fenetre_jours):
             if date_reference <= d <= limite:
                 candidats.append((d, nom, message))
 
+    # Événements personnalisés ajoutés par l'équipe (salons, partenariats, etc.)
+    candidats.extend(_evenements_personnalises_dans_fenetre(date_reference, limite))
+
     candidats.sort(key=lambda c: c[0])
     return candidats
 
@@ -103,8 +133,8 @@ def _prochains_evenements(date_reference, fenetre_jours):
 def generer_suggestion_sujet(date_reference=None, fenetre_jours=FENETRE_JOURS_PAR_DEFAUT):
     """
     Retourne une suggestion de sujet de post.
-    - S'il y a un événement (fixe ou mobile) dans les `fenetre_jours` prochains
-      jours, le propose avec le nombre de jours restants.
+    - S'il y a un événement (fixe, mobile, ou personnalisé) dans les `fenetre_jours`
+      prochains jours, le propose avec le nombre de jours restants.
     - Sinon, propose un pilier de contenu en rotation (pas de texte générique figé).
     """
     if date_reference is None:

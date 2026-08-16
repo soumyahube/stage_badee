@@ -1,0 +1,5 @@
+[
+  {"id": 0, "score": 15, "categorie": "soutien_communaute", "justification": "Compliment générique d'un profil stratégique mais sans demande concrète."},
+  {"id": 1, "score": 90, "categorie": "opportunite_business", "justification": "Demande directe de partenariat par un acteur de l'écosystème."},
+  {"id": 2, "score": 95, "categorie": "presse_media", "justification": "Demande d'interview ciblée par un média spécialisé pour un article sur l'ESS."}
+]

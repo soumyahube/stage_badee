@@ -28,4 +28,6 @@ jobs:
       - name: Exécuter le script d'alertes commentaires
         env:
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: python scripts/alertes_commentaires.py

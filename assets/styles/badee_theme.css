@@ -303,3 +303,40 @@ hr {
         margin: 0.75rem;
     }
 }
+/* ============================================================
+   ONGLETS (st.tabs) — navigation Chatbot / Dashboard
+   ============================================================ */
+[data-testid="stTabs"] [data-baseweb="tab-list"] {
+    gap: 0.5rem;
+    border-bottom: 1px solid var(--gris-bordure);
+}
+
+[data-testid="stTabs"] button[data-baseweb="tab"] {
+    height: auto;
+    padding: 0.6rem 1.1rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--gris-sourdine);
+    background-color: transparent;
+    border-radius: 8px 8px 0 0;
+    white-space: nowrap;
+}
+
+[data-testid="stTabs"] button[data-baseweb="tab"]:hover {
+    color: var(--badee-vert-fonce);
+    background-color: var(--gris-fond-subtil);
+}
+
+[data-testid="stTabs"] button[aria-selected="true"] {
+    color: var(--badee-vert-fonce) !important;
+    background-color: #EAF6EC;
+}
+
+[data-testid="stTabs"] [data-baseweb="tab-highlight"] {
+    background-color: var(--badee-vert-clair) !important;
+    height: 3px;
+}
+
+[data-testid="stTabs"] [data-baseweb="tab-border"] {
+    display: none;
+}
