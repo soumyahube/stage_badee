@@ -14,7 +14,8 @@ import os
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data.data_simulee import (
-    KPI_GLOBAUX, REPARTITION_CATEGORIES, TOP_POSTS, FLOP_POSTS, EVOLUTION_MENSUELLE
+    KPI_GLOBAUX, REPARTITION_CATEGORIES, TOP_POSTS, FLOP_POSTS, EVOLUTION_MENSUELLE,
+    ENGAGEMENT_DIRECTION, COUVERTURE_EVENEMENTS
 )
 
 # Couleurs BADEE pour cohérence visuelle avec le reste de l'app
@@ -131,6 +132,44 @@ def afficher_dashboard():
                 "commentaires": st.column_config.NumberColumn("Comm.", format="%d 💬"),
             },
         )
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ============================================================
+    # ENGAGEMENT DE LA DIRECTION
+    # ============================================================
+    st.markdown("#### Engagement de la direction sur les commentaires")
+    st.caption(
+        "Constat de l'audit : plus le volume de commentaires est élevé et qualitatif, "
+        "moins la réponse écrite de la direction est systématique — le « like » remplace "
+        "souvent la réponse."
+    )
+    st.dataframe(
+        ENGAGEMENT_DIRECTION, hide_index=True, use_container_width=True,
+        column_config={
+            "post": "Post",
+            "commentaires": st.column_config.NumberColumn("Commentaires"),
+            "reponse": "Réponse de la direction",
+        },
+    )
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ============================================================
+    # COUVERTURE ÉDITORIALE PAR ÉVÉNEMENT (teaser / bilan)
+    # ============================================================
+    st.markdown("#### Couverture teaser / bilan par événement")
+    st.caption(
+        "Le cycle teaser avant l'événement + bilan après n'est pas systématique sur "
+        "tous les événements internationaux couverts."
+    )
+    st.dataframe(
+        COUVERTURE_EVENEMENTS, hide_index=True, use_container_width=True,
+        column_config={
+            "evenement": "Événement",
+            "couverture": "Couverture éditoriale",
+        },
+    )
 
     st.markdown("<br>", unsafe_allow_html=True)
 

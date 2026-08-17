@@ -58,6 +58,38 @@ FLOP_POSTS = pd.DataFrame([
 ])
 
 # ============================================================
+# ENGAGEMENT DE LA DIRECTION (chiffres réels, état des lieux section 4.3)
+# Constat clé de l'audit : plus le volume de commentaires est élevé et
+# qualitatif, moins la réponse écrite de la CEO est systématique.
+# ============================================================
+ENGAGEMENT_DIRECTION = pd.DataFrame([
+    {"post": "GSEF Bordeaux (Jour 1)", "commentaires": 2, "reponse": "Réponse écrite aux 2 commentaires"},
+    {"post": "CREMAI Marrakech", "commentaires": 4, "reponse": "Réponse écrite à 1 commentaire sur 4"},
+    {"post": "Ouverture Semaine ESS Addis-Abeba", "commentaires": 6, "reponse": "Like uniquement, aucune réponse écrite"},
+    {"post": "Coopérative de laine (vidéo)", "commentaires": 4, "reponse": "Like uniquement, aucune réponse écrite"},
+    {"post": "Adhésion GIIN", "commentaires": 4, "reponse": "Like uniquement, aucune réponse écrite"},
+    {"post": "Vidéo « Investing in People »", "commentaires": 4, "reponse": "Aucune interaction"},
+    {"post": "Shoppe Object — témoignage vidéo", "commentaires": 1, "reponse": "Aucune interaction"},
+])
+
+# ============================================================
+# COUVERTURE ÉDITORIALE PAR ÉVÉNEMENT (état des lieux section 4.1)
+# Volumes exacts non disponibles pour tous les événements dans l'audit —
+# on reste qualitatif (type de couverture) plutôt que d'inventer des comptes.
+# Seule la Semaine Maroc-Éthiopie a un chiffre confirmé (5 posts, le mieux
+# couvert éditorialement).
+# ============================================================
+COUVERTURE_EVENEMENTS = pd.DataFrame([
+    {"evenement": "Semaine Maroc-Éthiopie (Addis-Abeba)", "couverture": "Cycle renforcé — le mieux couvert (5 posts)"},
+    {"evenement": "Maison&Objet Paris", "couverture": "Cycle complet (teaser + bilan)"},
+    {"evenement": "GSEF Bordeaux", "couverture": "Cycle complet (teaser + bilan)"},
+    {"evenement": "Cosmetic 360", "couverture": "Cycle complet (teaser + bilan)"},
+    {"evenement": "INDEX Saudi Arabia", "couverture": "Bilan seul (pas de teaser identifié)"},
+    {"evenement": "Shoppe Object New York", "couverture": "Bilan seul (pas de teaser identifié)"},
+    {"evenement": "CREMAI Marrakech", "couverture": "Bilan seul (pas de teaser identifié)"},
+])
+
+# ============================================================
 # ÉVOLUTION MENSUELLE SIMULÉE (pas de vraie série temporelle
 # disponible sans API — extrapolation illustrative uniquement)
 # ============================================================
