@@ -1,9 +1,10 @@
 """
 Système d'alerte BADEE — Commentaires non répondus (48h)
 Vérifie les commentaires en attente de réponse et alerte en priorisant
-les profils à forte valeur, grâce à un scoring IA (poste + contenu du
-commentaire), avec repli automatique sur un scoring par mots-clés si le
-LLM est indisponible (voir scripts/scoring_commentaires.py).
+les profils/commentaires à forte valeur, via le scoring IA (score 0-100,
+catégorie, sentiment). Si le LLM est indisponible, scorer_commentaires()
+bascule automatiquement sur un scoring de secours par mots-clés — le
+système d'alerte ne tombe jamais en panne à cause du scoring.
 
 Premier test avec données simulées (à remplacer par l'API LinkedIn
 + Supabase une fois le module Collecte connecté).
@@ -21,6 +22,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from scripts.scoring_commentaires import scorer_commentaires, SEUIL_PRIORITAIRE
 
 # ============================================================
@@ -78,40 +80,34 @@ def heures_ecoulees(date_str):
 
 def detecter_commentaires_en_attente():
     """Filtre les commentaires non répondus depuis plus de SEUIL_HEURES,
-    puis les envoie au scoring IA (score 0-100 + catégorie) avant de trier
-    par priorité décroissante."""
-    candidats = []
+    puis les score via le module IA (scorer_commentaires)."""
+    en_attente = []
     for c in COMMENTAIRES_SIMULES:
         if c["repondu"]:
             continue
         h = heures_ecoulees(c["date_commentaire"])
         if h >= SEUIL_HEURES:
             c["heures_ecoulees"] = round(h, 1)
-            candidats.append(c)
+            en_attente.append(c)
 
-    if not candidats:
+    if not en_attente:
         return []
 
-    # Scoring IA en un seul appel batch (fallback mots-clés géré en interne)
-    candidats_scores = scorer_commentaires(candidats)
+    # Scoring IA (score 0-100, categorie, sentiment, justification).
+    # Bascule automatique sur le fallback mots-clés en interne si le LLM échoue.
+    en_attente = scorer_commentaires(en_attente)
 
-    # Tri par score décroissant, puis par ancienneté pour départager
-    candidats_scores.sort(key=lambda c: (-c["score"], -c["heures_ecoulees"]))
-    return candidats_scores
+    # Priorité : score le plus élevé d'abord, puis les plus anciens
+    en_attente.sort(key=lambda c: (-c["score"], -c["heures_ecoulees"]))
+    return en_attente
 
 
 def construire_corps_email(commentaires):
     lignes = []
     for c in commentaires:
-        if c["score"] >= SEUIL_PRIORITAIRE:
-            priorite = "🔴 PRIORITAIRE"
-        elif c["sentiment"] == "negatif":
-            priorite = "⚠️ TON NÉGATIF"  # à surveiller même si peu urgent côté business
-        else:
-            priorite = "🟡 Standard"
-        emoji_sentiment = {"positif": "🙂", "neutre": "😐", "negatif": "🙁"}[c["sentiment"]]
+        priorite = "🔴 PRIORITAIRE" if c["score"] >= SEUIL_PRIORITAIRE else "🟡 Standard"
         lignes.append(f"""
-{priorite} — score {c['score']}/100 ({c['categorie']}) — ton {emoji_sentiment} {c['sentiment']}
+{priorite} — score {c['score']}/100 ({c['categorie']}) — ton {c['sentiment']}
 Post : {c['post_titre']}
 Auteur : {c['auteur']} — {c['poste_auteur']}
 Commentaire : "{c['commentaire']}"

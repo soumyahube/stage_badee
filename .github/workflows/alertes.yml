@@ -1,10 +1,10 @@
 name: Alertes Publication BADEE
 
 on:
-  schedule:
+  #schedule:
     # Tous les lundis à 8h UTC — adapte selon ta préférence
     # Rappel : le fuseau GitHub Actions est TOUJOURS en UTC (Maroc = UTC+0 ou UTC+1 selon saison)
-    - cron: '0 8 * * 1'
+    #- cron: '0 8 * * 1'
   workflow_dispatch:  # permet de lancer le workflow manuellement depuis l'onglet Actions, pour tester
 
 jobs:

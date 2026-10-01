@@ -1,9 +1,9 @@
 name: Alertes Commentaires BADEE
 
 on:
-  schedule:
+   #schedule:
     # Toutes les 24h à 9h UTC — cohérent avec ton seuil de 48h (2 checks avant déclenchement)
-    - cron: '0 9 * * *'
+    #- cron: '0 9 * * *'
   workflow_dispatch:  # permet de lancer le workflow manuellement depuis l'onglet Actions, pour tester
 
 jobs:
