@@ -6,6 +6,9 @@ catégorie, sentiment). Si le LLM est indisponible, scorer_commentaires()
 bascule automatiquement sur un scoring de secours par mots-clés — le
 système d'alerte ne tombe jamais en panne à cause du scoring.
 
+Quand le nombre de commentaires en attente dépasse SEUIL_RESUME, l'email
+passe en mode résumé structuré : prioritaires en détail, autres en une ligne.
+
 Premier test avec données simulées (à remplacer par l'API LinkedIn
 + Supabase une fois le module Collecte connecté).
 
@@ -17,7 +20,7 @@ import sys
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from datetime import datetime, timedelta
+from datetime import datetime
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -29,6 +32,7 @@ from scripts.scoring_commentaires import scorer_commentaires, SEUIL_PRIORITAIRE
 # CONFIGURATION
 # ============================================================
 SEUIL_HEURES = 48  # Alerter si commentaire sans réponse depuis plus de 48h
+SEUIL_RESUME = 5   # Au-delà de ce nombre de commentaires, l'email passe en résumé structuré
 
 # Commentaires simulés (à remplacer par l'API plus tard)
 COMMENTAIRES_SIMULES = [
@@ -102,11 +106,10 @@ def detecter_commentaires_en_attente():
     return en_attente
 
 
-def construire_corps_email(commentaires):
-    lignes = []
-    for c in commentaires:
-        priorite = "🔴 PRIORITAIRE" if c["score"] >= SEUIL_PRIORITAIRE else "🟡 Standard"
-        lignes.append(f"""
+def _bloc_detaille(c):
+    """Format complet d'un commentaire (score, catégorie, justification...)."""
+    priorite = "🔴 PRIORITAIRE" if c["score"] >= SEUIL_PRIORITAIRE else "🟡 Standard"
+    return f"""
 {priorite} — score {c['score']}/100 ({c['categorie']}) — ton {c['sentiment']}
 Post : {c['post_titre']}
 Auteur : {c['auteur']} — {c['poste_auteur']}
@@ -114,8 +117,36 @@ Commentaire : "{c['commentaire']}"
 Pourquoi ce score : {c['justification']}
 Sans réponse depuis : {c['heures_ecoulees']} h
 Lien : {c['lien']}
-{'-'*50}""")
-    return "\n".join(lignes)
+{'-'*50}"""
+
+
+def _ligne_resume(c):
+    """Format condensé d'un commentaire standard (une seule ligne)."""
+    return f"• {c['auteur']} — {c['post_titre']} — {c['heures_ecoulees']} h — {c['lien']}"
+
+
+def construire_corps_email(commentaires):
+    # Peu de commentaires : format détaillé pour tous
+    if len(commentaires) <= SEUIL_RESUME:
+        return "\n".join(_bloc_detaille(c) for c in commentaires)
+
+    # Beaucoup de commentaires : résumé structuré
+    prioritaires = [c for c in commentaires if c["score"] >= SEUIL_PRIORITAIRE]
+    standards = [c for c in commentaires if c["score"] < SEUIL_PRIORITAIRE]
+
+    parties = [
+        f"📊 {len(commentaires)} commentaires en attente : "
+        f"{len(prioritaires)} prioritaire(s), {len(standards)} standard(s)"
+    ]
+    if prioritaires:
+        parties.append(
+            "🔴 À TRAITER EN PRIORITÉ\n" + "\n".join(_bloc_detaille(c) for c in prioritaires)
+        )
+    if standards:
+        parties.append(
+            "🟡 AUTRES COMMENTAIRES (résumé)\n" + "\n".join(_ligne_resume(c) for c in standards)
+        )
+    return "\n\n".join(parties)
 
 
 def envoyer_alerte_email(commentaires):
